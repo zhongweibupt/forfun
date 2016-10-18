@@ -22,6 +22,10 @@ import java.util.Map.Entry;
 * @version 1.0
 */
 public class WordsTable {
+	public static final double THRESHOLD_STOP = 0.3;
+	
+	private List<String> stopWords;
+	
 	private List<String> labels;
 	private List<Article> articles;
 	private Map<String, List<Article>> articlesLabeled;
@@ -70,10 +74,23 @@ public class WordsTable {
 			}
 			this.wordsCountLabeled.put(label, wordsCountOfLabel);
 			
-			wordsOfLabel = WordsTable.sortMap(wordsCountOfLabel);
+			wordsOfLabel = WordsTable.sortMap(wordsCountOfLabel, new Comparator<Object>() {  
+	            public int compare(Object o1, Object o2) {  
+	            	Entry<String, Integer> obj1 = (Entry<String, Integer>) o1;  
+	            	Entry<String, Integer> obj2 = (Entry<String, Integer>) o2;  
+	                return (obj2.getValue()).compareTo(obj1.getValue());  
+	                }  
+	        });
+			
 			this.wordsLabeled.put(label, wordsOfLabel);
 		}
-		this.wordsAll = WordsTable.sortMap(wordsCountAll);
+		this.wordsAll = WordsTable.sortMap(wordsCountAll, new Comparator<Object>() {  
+            public int compare(Object o1, Object o2) {  
+            	Entry<String, Integer> obj1 = (Entry<String, Integer>) o1;  
+            	Entry<String, Integer> obj2 = (Entry<String, Integer>) o2;  
+                return (obj2.getValue()).compareTo(obj1.getValue());  
+                }  
+        });
 		
 		for(String word : this.wordsAll) {
 			int countAll = 0;
@@ -92,6 +109,9 @@ public class WordsTable {
 			this.articlesCountLabeled.put(word, articlesCountOfLabel);
 			this.articlesCountAll.put(word, countAll);
 		}
+		
+		this.stopWords = generateStopWords();
+		filterStopWords(this.stopWords);
 	}
 
 	/**
@@ -115,23 +135,69 @@ public class WordsTable {
 		return this.wordsCountAll;
 	}
 	
-	/**
-	 * @return
-	 */
+	public List<String> getWords() {
+		return this.wordsAll;
+	}
+	
 	public double getSize() {
 		return this.wordsAll.size();
 	}
 	
-	public static <T> List<String> sortMap(Map<String, T> map) {
+	public boolean containsWord(String word) {
+		return this.wordsAll.contains(word);
+	}
+	
+	public List<String> getStopWords() {
+		return this.stopWords;
+	}
+	
+	private List<String> generateStopWords() {
+		List<String> result = new LinkedList<String>();
+		
+		int numOfLabels = this.labels.size();
+		
+		for(String word : this.wordsAll) {
+			int count = 0;
+			for(String label : this.labels) {
+				if(wordsCountLabeled.get(label).containsKey(word))
+					count++;
+			}
+			if((double)count/numOfLabels >= THRESHOLD_STOP) {
+				result.add(word);
+			}
+		}
+		
+		return result;
+	}
+	
+	private void filterStopWords(List<String> stopWords) {
+		for(Article article : this.articles) {
+			article.filter(stopWords);
+		}
+		
+		this.wordsAll.removeAll(stopWords);
+		for(String label : this.labels) {
+			List<String> words = this.wordsLabeled.get(label);
+			words.removeAll(stopWords);
+			this.wordsLabeled.put(label, words);
+			
+			Map<String, Integer> map = this.wordsCountLabeled.get(label);
+			for(String word : stopWords) {
+				map.remove(word);
+			}
+		}
+		
+		for(String word : stopWords) {
+			this.wordsCountAll.remove(word);
+			this.articlesCountAll.remove(word);
+			this.articlesCountLabeled.remove(word);
+		}
+	}
+	
+	public static <T> List<String> sortMap(Map<String, T> map, Comparator comparator) {
 		List<Entry<String, T>> list = new LinkedList<Entry<String, T>>(map.entrySet());
 		
-		Collections.sort(list, new Comparator<Object>() {  
-            public int compare(Object o1, Object o2) {  
-            	Entry<String, Integer> obj1 = (Entry<String, Integer>) o1;  
-            	Entry<String, Integer> obj2 = (Entry<String, Integer>) o2;  
-                return (obj2.getValue()).compareTo(obj1.getValue());  
-                }  
-        });
+		Collections.sort(list, comparator);
 		
 		List<String> listSorted = new LinkedList<String>();
 		for(Entry<String, T> entry : list) {

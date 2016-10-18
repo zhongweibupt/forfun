@@ -60,7 +60,13 @@ public class Article {
 			this.termFrequency.put(word, ++tmp);
 		}
 		
-		this.wordsVectorSorted = WordsTable.sortMap(termFrequency);
+		this.wordsVectorSorted = WordsTable.sortMap(termFrequency, new Comparator<Object>() {  
+            public int compare(Object o1, Object o2) {  
+            	Entry<String, Integer> obj1 = (Entry<String, Integer>) o1;  
+            	Entry<String, Integer> obj2 = (Entry<String, Integer>) o2;  
+                return (obj2.getValue()).compareTo(obj1.getValue());  
+                }  
+        });
 	}
 	
 	public void filter(List<String> stopWords) {
@@ -116,8 +122,13 @@ public class Article {
 		return this.wordsVectorSorted;
 	}
 	
+	public boolean containsWord(String word) {
+		return this.wordsListAll.contains(word);
+	}
+	
 	public int getFrequencyOfWord(String word) {
-		return this.termFrequency.get(word);
+		return this.containsWord(word) ? 
+				this.termFrequency.get(word) : 0;
 	}
 	
 	public String getText() {
@@ -131,11 +142,4 @@ public class Article {
 	public int getLength() {
 		return this.realLength;
 	}
-	
-	public static void main(String args[]) throws IOException {
-		String text = "Dear Paul,   This is with regards to your expense report _ VenaSeal Launch Meeting.   As per policy formal approval for intercontinental travel in economy class from direct manager is required so, so could you please provide us the approval.   Expense line item dated 20/02/2025 Airfare amounting 825.20 EUR,     Thank you in advance for your cooperation.   Priyanka T&E Team Member | T&E Department aabbcc [AG, organizacni slozka], a aabbcc Company E-mail: Teemea@aabbccaaabbb aabbccaaabbb   |  Facebook   |  LinkedIn   |  Twitter   |  YouTube   qqq   For any question related to travel expenses visit our EMEA T&E InfoPoint  and   contact Us on the T&E Helpdesk . This information may be confidential and/or privileged. Use of this information by anyone other than the intended recipient is prohibited. If you receive this in error, please inform the sender and remove any record of this message.  P Please consider the environment before printing this email.";
-		Article article = new Article(text);
-		article.wordsCount();
-	}
-
 }
